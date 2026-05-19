@@ -14,13 +14,7 @@ except ImportError as exc:
 
 
 FEATURES = ["s1", "s2", "s3", "s4", "s5"]
-LABEL_TO_CODE = {
-    "NO_FIRE": 0,
-    "FIRE_LEFT": 1,
-    "FIRE_CENTER": 2,
-    "FIRE_RIGHT": 3,
-    "FIRE_CLOSE": 4,
-}
+LABEL_ORDER = ["NO_FIRE", "FIRE_LEFT", "FIRE_CENTER", "FIRE_RIGHT"]
 
 
 def load_dataset(path: Path):
@@ -29,7 +23,7 @@ def load_dataset(path: Path):
     with path.open(newline="") as file:
         reader = csv.DictReader(file)
         for row in reader:
-            rows.append([int(row[name]) for name in FEATURES])
+            rows.append([int(row[f]) for f in FEATURES])
             labels.append(row["label"].strip())
     return rows, labels
 
@@ -57,11 +51,14 @@ def main():
     dataset_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/dummy_dataset_fire_robot.csv")
     x, y = load_dataset(dataset_path)
 
+    unknown = set(y) - set(LABEL_ORDER)
+    if unknown:
+        raise SystemExit(f"Label tidak dikenal dalam dataset: {unknown}")
     if len(set(y)) < 2:
         raise SystemExit("Dataset harus punya minimal 2 label berbeda.")
 
     x_train, x_test, y_train, y_test = train_test_split(
-        x, y, test_size=0.25, random_state=42, stratify=y
+        x, y, test_size=0.20, random_state=42, stratify=y
     )
 
     tree_model = DecisionTreeClassifier(max_depth=4, random_state=42)
@@ -77,16 +74,12 @@ def main():
     print("\nClassification report:")
     print(classification_report(y_test, prediction))
 
-    class_names = []
-    for label in tree_model.classes_:
-        if label not in LABEL_TO_CODE:
-            raise SystemExit(f"Label tidak dikenal: {label}")
-        class_names.append(label)
+    class_names = list(tree_model.classes_)
 
     print("\nArduino enum:")
-    print("enum FirePrediction {")
-    for label in LABEL_TO_CODE:
-        print(f"  {label} = {LABEL_TO_CODE[label]},")
+    print("enum FireDirection {")
+    for i, label in enumerate(LABEL_ORDER):
+        print(f"  {label} = {i},")
     print("};")
 
     print("\nArduino predictFireDirection():")

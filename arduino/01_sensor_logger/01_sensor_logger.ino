@@ -1,6 +1,8 @@
 /*
-  Data logger flame sensor 5 channel.
-  Upload file ini dulu untuk mengambil dataset asli dari robot.
+  Data logger untuk 5 channel flame sensor.
+  Upload ke Arduino, buka Serial Monitor 9600 baud.
+  Posisikan robot di setiap kondisi api, copy output ke CSV,
+  lalu tambahkan kolom label (NO_FIRE / FIRE_LEFT / FIRE_CENTER / FIRE_RIGHT) secara manual.
 */
 
 const int flamePins[5] = { A0, A1, A2, A3, A4 };
@@ -13,14 +15,17 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i < 5; i++) {
-    int value = analogRead(flamePins[i]);
-    Serial.print(value);
-    if (i < 4) {
-      Serial.print(",");
-    }
-  }
+  int s1 = analogRead(flamePins[0]);
+  int s2 = analogRead(flamePins[1]);
+  int s3 = analogRead(flamePins[2]);
+  int s4 = analogRead(flamePins[3]);
+  int s5 = analogRead(flamePins[4]);
 
-  Serial.println();
+  Serial.print(s1);   Serial.print(",");
+  Serial.print(s2);   Serial.print(",");
+  Serial.print(s3);   Serial.print(",");
+  Serial.print(s4);   Serial.print(",");
+  Serial.println(s5);
+
   delay(sampleDelayMs);
 }
