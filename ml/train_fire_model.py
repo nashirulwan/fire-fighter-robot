@@ -13,6 +13,8 @@ except ImportError as exc:
     ) from exc
 
 
+# Urutan fitur harus sama di seluruh proyek:
+# s1=A5, s2=A4, s3=A3, s4=A2, s5=A1.
 FEATURES = ["s1", "s2", "s3", "s4", "s5"]
 LABEL_ORDER = ["NO_FIRE", "FIRE_LEFT", "FIRE_CENTER", "FIRE_RIGHT"]
 
@@ -20,7 +22,8 @@ LABEL_ORDER = ["NO_FIRE", "FIRE_LEFT", "FIRE_CENTER", "FIRE_RIGHT"]
 def load_dataset(path: Path):
     rows = []
     labels = []
-    with path.open(newline="") as file:
+    # utf-8-sig keeps CSVs with a UTF-8 BOM compatible, common from spreadsheet exports.
+    with path.open(newline="", encoding="utf-8-sig") as file:
         reader = csv.DictReader(file)
         for row in reader:
             rows.append([int(row[f]) for f in FEATURES])
@@ -48,7 +51,7 @@ def arduino_tree(node, tree, feature_names, class_names, indent="  "):
 
 
 def main():
-    dataset_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/dummy_dataset_fire_robot.csv")
+    dataset_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("data/dataset_fire_robot_interpolated_smoothed_clean.csv")
     x, y = load_dataset(dataset_path)
 
     unknown = set(y) - set(LABEL_ORDER)

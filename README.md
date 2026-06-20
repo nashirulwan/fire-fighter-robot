@@ -1,115 +1,100 @@
-# Fire Fighter Robot ML
+### Fire Fighter Robot ML
 
-Project ini menambahkan machine learning ke robot pemadam api Arduino berbasis flame sensor. Kode awal robot sudah dapat bergerak berdasarkan api, tetapi keputusan masih memakai threshold manual dan servo nozzle masih bergerak sweeping. Versi ini menambahkan model **Decision Tree Classifier** agar robot dapat menentukan arah api dari data sensor, sehingga servo nozzle mengikuti arah api.
+Adds machine learning to an Arduino flame sensor fire fighting robot. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle servo just swept back and forth. This version adds a Decision Tree Classifier so the robot reads the fire direction from the sensor data and points the nozzle at it.
 
-## Konsep Sistem
+#### How it works
 
-Input model berasal dari flame sensor 5 channel pada Arduino:
+Model input is a 5 channel flame sensor on the Arduino:
 
 | Arduino | Dataset |
 |---|---|
-| A0 | `s1` |
-| A1 | `s2` |
-| A2 | `s3` |
-| A3 | `s4` |
-| A4 | `s5` |
+| A5 | `s1` |
+| A4 | `s2` |
+| A3 | `s3` |
+| A2 | `s4` |
+| A1 | `s5` |
 
-Output klasifikasi (4 kelas):
+Output is a 4 class label:
 
-| Label | Aksi Robot |
+| Label | Robot action |
 |---|---|
-| `NO_FIRE` | Robot berhenti, pompa mati, servo tengah |
-| `FIRE_LEFT` | Robot belok kiri, servo nozzle kiri |
-| `FIRE_CENTER` | Robot maju, servo nozzle tengah |
-| `FIRE_RIGHT` | Robot belok kanan, servo nozzle kanan |
+| `NO_FIRE` | stop, pump off, servo centered |
+| `FIRE_LEFT` | turn left, nozzle left |
+| `FIRE_CENTER` | move forward, nozzle centered |
+| `FIRE_RIGHT` | turn right, nozzle right |
 
-Deteksi **proximity** (api sangat dekat) dipertahankan sebagai threshold deterministik pada channel tengah (A2/s3), terpisah dari model ML. Jika hasilnya `FIRE_CENTER` dan nilai s3 ≤ `PROXIMITY_THRESHOLD`, robot berhenti dan menyiram.
+Proximity (fire very close) stays as a deterministic threshold on the center channel (A3/s3), separate from the model. If the prediction is `FIRE_CENTER` and `s3 <= PROXIMITY_THRESHOLD`, the robot stops and sprays.
 
-## Metodologi
+#### Methodology
 
-Notebook training disusun mengikuti alur materi data science:
+The training notebook follows the data science flow from class:
 
 1. Business Understanding
 2. Analytic Approach
-3. Data Requirement dan Data Collection
+3. Data Requirement and Data Collection
 4. Data Understanding
 5. Data Preparation
 6. Feature Engineering
 7. Modeling Scenario
 8. Evaluation
 9. Model Interpretation
-10. Deployment ke Arduino
+10. Deployment to Arduino
 
-Algoritma: **Decision Tree Classifier** — ringan, mudah dijelaskan, dan hasilnya dapat diekspor menjadi kode `if-else` untuk Arduino tanpa library ML tambahan.
+Algorithm: Decision Tree Classifier. It's light, easy to explain, and the result exports to plain if-else code for the Arduino with no extra ML library.
 
-## Struktur Folder
+#### Project structure
 
 ```text
 arduino/
   01_sensor_logger/
-    01_sensor_logger.ino      # Baca 5 flame sensor A0-A4 untuk ambil dataset asli
+    01_sensor_logger.ino      # read the 5 flame sensors A5-A1 to collect the dataset
   02_fire_robot_ml/
-    02_fire_robot_ml.ino      # Kode final robot dengan Decision Tree
-
+    02_fire_robot_ml.ino      # final robot code with the Decision Tree
 data/
-  dummy_dataset_fire_robot.csv  # Dataset dummy (5 kolom, 4 kelas) untuk validasi pipeline
-  fire_dataset_real.csv         # Dataset asli dari robot (isi sendiri setelah pengambilan data)
-
+  dummy_dataset_fire_robot.csv  # dummy dataset (5 cols, 4 classes) to validate the pipeline
+  fire_dataset_real.csv         # real dataset from the robot (you fill this after collecting)
 ml/
-  train_fire_model.ipynb        # Notebook metodologi data science
-  train_fire_model.py           # Script training Decision Tree
+  train_fire_model.ipynb        # the data science methodology notebook
+  train_fire_model.py           # Decision Tree training script
+penjelasan/                     # notes and flow/activity diagrams
 ```
 
-## Cara Menjalankan Notebook
-
-Jika memakai Nix:
+#### Python setup
 
 ```bash
-cd fire-fighting-robot-ml
-nix --extra-experimental-features nix-command --extra-experimental-features flakes shell --impure --expr 'with import <nixpkgs> {}; python3.withPackages (ps: with ps; [ scikit-learn pandas matplotlib notebook ])' --command jupyter notebook
+python -m venv .venv
+source .venv/bin/activate        # on Windows: .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-Buka file:
-
-```text
-ml/train_fire_model.ipynb
-```
-
-Jika memakai Google Colab, upload:
-
-```text
-ml/train_fire_model.ipynb
-data/dummy_dataset_fire_robot.csv   ← atau fire_dataset_real.csv setelah data asli tersedia
-```
-
-## Training Model
-
-Untuk menjalankan training lewat terminal (Nix):
+Then run the training script:
 
 ```bash
-nix --extra-experimental-features "nix-command flakes" shell --impure \
-  --expr 'with import <nixpkgs> {}; python3.withPackages (ps: with ps; [ scikit-learn pandas ])' \
-  --command python ml/train_fire_model.py data/dummy_dataset_fire_robot.csv
+python ml/train_fire_model.py data/dummy_dataset_fire_robot.csv
 ```
 
-Output training menghasilkan fungsi Arduino yang langsung bisa ditempel:
+Or open the notebook (`ml/train_fire_model.ipynb`). Colab works too, just upload the notebook plus a dataset csv.
+
+#### Training
+
+```bash
+python ml/train_fire_model.py data/dummy_dataset_fire_robot.csv
+```
+
+Training prints an Arduino function you can paste straight into the robot code:
 
 ```cpp
 int predictFireDirection(int s1, int s2, int s3, int s4, int s5) {
-  // aturan Decision Tree hasil training
+  // Decision Tree rules from training
 }
 ```
 
-## Alur Pengambilan Data Asli
+#### Collecting real data
 
-1. Upload `arduino/01_sensor_logger/01_sensor_logger.ino` ke robot.
-2. Buka Serial Monitor 9600 baud — akan muncul header `s1,s2,s3,s4,s5`.
-3. Ambil data per sesi posisi api:
-   - Tidak ada api → copy ke kolom `NO_FIRE`
-   - Api di depan kiri (A0/A1) → copy ke kolom `FIRE_LEFT`
-   - Api di depan tengah (A2) → copy ke kolom `FIRE_CENTER`
-   - Api di depan kanan (A3/A4) → copy ke kolom `FIRE_RIGHT`
-4. Tambahkan kolom `label` manual, simpan sebagai `data/fire_dataset_real.csv`:
+1. Upload `arduino/01_sensor_logger/01_sensor_logger.ino` to the robot.
+2. Open Serial Monitor at 9600 baud, you'll see the header `s1,s2,s3,s4,s5`.
+3. Record per fire position: no fire to `NO_FIRE`, fire front-left (A5/A4) to `FIRE_LEFT`, front-center (A3) to `FIRE_CENTER`, front-right (A2/A1) to `FIRE_RIGHT`.
+4. Add a `label` column and save as `data/fire_dataset_real.csv`:
 
 ```csv
 s1,s2,s3,s4,s5,label
@@ -119,27 +104,26 @@ s1,s2,s3,s4,s5,label
 900,890,850,460,320,FIRE_RIGHT
 ```
 
-5. Training ulang dengan data asli:
+5. Retrain with the real data: `python ml/train_fire_model.py data/fire_dataset_real.csv`
+6. Copy the generated `predictFireDirection()` into `arduino/02_fire_robot_ml/02_fire_robot_ml.ino`.
+7. Tune `PROXIMITY_THRESHOLD` from the center sensor (A3/s3) reading when the fire is very close.
+8. Upload and test.
 
-```bash
-python ml/train_fire_model.py data/fire_dataset_real.csv
-```
+#### Status
 
-6. Salin fungsi `predictFireDirection()` hasil training ke `arduino/02_fire_robot_ml/02_fire_robot_ml.ino`.
-7. Sesuaikan nilai `PROXIMITY_THRESHOLD` berdasarkan pembacaan s3 saat api sangat dekat.
-8. Upload ke robot dan uji.
+Done:
+- Dummy dataset, 4 classes, 5 columns, to validate the pipeline
+- Training notebook with the data science methodology (80:20 split)
+- Decision Tree training script
+- Arduino sensor logger reading all 5 channels
+- Final Arduino code with the servo following the predicted direction plus the deterministic proximity check
 
-## Status Progres
+Not done yet:
+- Collecting the real dataset from the physical robot
+- Retraining on real data
+- Calibrating `PROXIMITY_THRESHOLD` from real readings
+- Uploading and testing on the robot
 
-Sudah selesai:
-- Dataset dummy 4 kelas, 5 kolom untuk validasi pipeline.
-- Notebook training dengan metodologi data science (80:20 split).
-- Script training Decision Tree.
-- Arduino sensor logger — baca semua 5 channel.
-- Arduino final dengan servo mengikuti arah klasifikasi + proximity check deterministik.
+#### License
 
-Belum selesai:
-- Pengambilan dataset asli dari robot fisik.
-- Training ulang dengan data asli.
-- Kalibrasi `PROXIMITY_THRESHOLD` dari data nyata.
-- Upload dan uji langsung pada robot.
+MIT, see LICENSE.

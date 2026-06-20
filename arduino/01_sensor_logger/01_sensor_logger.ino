@@ -1,11 +1,12 @@
 /*
   Data logger untuk 5 channel flame sensor.
+  Urutan logis sensor: s1=A5, s2=A4, s3=A3, s4=A2, s5=A1.
   Upload ke Arduino, buka Serial Monitor 9600 baud.
   Posisikan robot di setiap kondisi api, copy output ke CSV,
   lalu tambahkan kolom label (NO_FIRE / FIRE_LEFT / FIRE_CENTER / FIRE_RIGHT) secara manual.
 */
 
-const int flamePins[5] = { A0, A1, A2, A3, A4 };
+const int flamePins[5] = { A5, A4, A3, A2, A1 };
 const unsigned long sampleDelayMs = 300;
 
 void setup() {

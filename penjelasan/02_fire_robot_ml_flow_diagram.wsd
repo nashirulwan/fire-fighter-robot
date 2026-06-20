@@ -1,0 +1,97 @@
+@startuml
+title Flowchart Diagram - 02_fire_robot_ml.ino
+caption Ringkasan alur logika program robot pemadam api berbasis Arduino dan Decision Tree.
+
+skinparam Shadowing false
+skinparam BackgroundColor #FFFCF5
+skinparam DefaultFontName Segoe UI
+skinparam DefaultFontColor #1F2937
+skinparam ArrowColor #475569
+skinparam ActivityBorderColor #334155
+skinparam ActivityFontColor #0F172A
+skinparam ActivityDiamondBorderColor #334155
+skinparam ActivityDiamondFontColor #0F172A
+skinparam ActivityStartColor #16A34A
+skinparam ActivityEndColor #DC2626
+skinparam TitleFontColor #0F172A
+skinparam TitleFontSize 22
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #CBD5E1
+skinparam NoteBackgroundColor #FEF3C7
+skinparam NoteBorderColor #D97706
+skinparam ConditionStyle diamond
+
+legend right
+|= Warna |= Makna |
+|<#DBEAFE>| Inisialisasi dan startup |
+|<#DCFCE7>| Pembacaan sensor |
+|<#FCE7F3>| Proses keputusan |
+|<#FEF3C7>| Aksi aktuator |
+|<#E2E8F0>| Monitoring dan pengulangan loop |
+endlegend
+
+start
+
+:#DBEAFE:Robot dinyalakan;
+:#DBEAFE:Inisialisasi Serial,\nservo, motor DC, dan pompa;
+:#DBEAFE:Set kondisi awal motor berhenti;
+:#DBEAFE:Kalibrasi ambient baseline\nsaat startup;
+
+note right
+Kalibrasi ambient dilakukan
+saat awal hidup agar cahaya
+sekitar disimpan sebagai
+baseline normal.
+end note
+
+repeat
+
+:#DCFCE7:Baca 5 sensor flame;
+:#DCFCE7:Hitung smoothing average\nuntuk s1, s2, s3, s4, s5;
+:#FCE7F3:Jalankan Decision Tree\npredictFireDirection(s1..s5);
+:#FCE7F3:Dapatkan rawDirection;
+
+if (Perubahan sensor cukup besar\ndibanding baseline ambient?) then (Ya)
+  :#FCE7F3:rawDirection dipertahankan;
+else (Tidak)
+  :#FCE7F3:Set rawDirection = NO_FIRE;
+endif
+
+:#FCE7F3:Terapkan hysteresis\nagar keputusan stabil;
+:#FCE7F3:Hasil akhir = direction;
+
+if (direction == FIRE_LEFT?) then (Ya)
+  :#FEF3C7:Servo ke kiri;
+  :#FEF3C7:Pompa mati;
+  :#FEF3C7:Robot belok kiri;
+else (Tidak)
+  if (direction == FIRE_RIGHT?) then (Ya)
+    :#FEF3C7:Servo ke kanan;
+    :#FEF3C7:Pompa mati;
+    :#FEF3C7:Robot belok kanan;
+  else (Tidak)
+    if (direction == FIRE_CENTER?) then (Ya)
+      :#FEF3C7:Servo ke tengah;
+      if (s3 >= PROXIMITY_THRESHOLD?) then (Ya)
+        :#FEF3C7:Robot berhenti;
+        :#FEF3C7:Pompa menyala;
+        :#FEF3C7:Servo menyapu kecil\nuntuk pemadaman;
+      else (Tidak)
+        :#FEF3C7:Pompa mati;
+        :#FEF3C7:Robot maju ke depan;
+      endif
+    else (NO_FIRE)
+      :#FEF3C7:Servo ke tengah;
+      :#FEF3C7:Pompa mati;
+      :#FEF3C7:Robot berhenti;
+    endif
+  endif
+endif
+
+:#E2E8F0:Tampilkan debug Serial\nsensor, rawDirection,\nstable direction, dan status;
+:#E2E8F0:Tunggu 150 ms;
+
+repeat while (Loop utama berjalan terus?) is (Ya) not (Tidak)
+
+stop
+@enduml
