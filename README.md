@@ -1,6 +1,8 @@
 ### Fire Fighter Robot ML
 
-Adds machine learning to an Arduino flame sensor fire fighting robot. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle servo just swept back and forth. This version adds a Decision Tree Classifier so the robot reads the fire direction from the sensor data and points the nozzle at it.
+A built fire fighting robot that uses a Decision Tree on real flame sensor data to figure out where the fire is and point its nozzle at it. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle just swept back and forth. This version learns the fire direction from the sensors instead.
+
+![robot prototype](docs/robot.png)
 
 #### How it works
 
@@ -25,6 +27,18 @@ Output is a 4 class label:
 
 Proximity (fire very close) stays as a deterministic threshold on the center channel (A3/s3), separate from the model. If the prediction is `FIRE_CENTER` and `s3 <= PROXIMITY_THRESHOLD`, the robot stops and sprays.
 
+![system design](docs/system-design.png)
+
+#### Hardware
+
+Arduino with an Adafruit Motor Shield (L293D), a 5 channel flame sensor, two DC motors, a small water pump, and 18650 batteries.
+
+![circuit](docs/circuit.png)
+
+#### Data
+
+Real flame sensor data collected from the robot: 260 samples across the 4 classes (NO_FIRE 85, FIRE_CENTER 74, FIRE_RIGHT 59, FIRE_LEFT 42), then interpolated, smoothed and cleaned. It lives in `data/dataset_fire_robot_interpolated_smoothed_clean.csv`. There's also a tiny dummy set just for quick pipeline sanity checks.
+
 #### Methodology
 
 The training notebook follows the data science flow from class:
@@ -42,43 +56,14 @@ The training notebook follows the data science flow from class:
 
 Algorithm: Decision Tree Classifier. It's light, easy to explain, and the result exports to plain if-else code for the Arduino with no extra ML library.
 
-#### Project structure
-
-```text
-arduino/
-  01_sensor_logger/
-    01_sensor_logger.ino      # read the 5 flame sensors A5-A1 to collect the dataset
-  02_fire_robot_ml/
-    02_fire_robot_ml.ino      # final robot code with the Decision Tree
-data/
-  dummy_dataset_fire_robot.csv  # dummy dataset (5 cols, 4 classes) to validate the pipeline
-  fire_dataset_real.csv         # real dataset from the robot (you fill this after collecting)
-ml/
-  train_fire_model.ipynb        # the data science methodology notebook
-  train_fire_model.py           # Decision Tree training script
-penjelasan/                     # notes and flow/activity diagrams
-```
-
-#### Python setup
+#### Run
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # on Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
 
-Then run the training script:
-
-```bash
-python ml/train_fire_model.py data/dummy_dataset_fire_robot.csv
-```
-
-Or open the notebook (`ml/train_fire_model.ipynb`). Colab works too, just upload the notebook plus a dataset csv.
-
-#### Training
-
-```bash
-python ml/train_fire_model.py data/dummy_dataset_fire_robot.csv
+python ml/train_fire_model.py data/dataset_fire_robot_interpolated_smoothed_clean.csv
 ```
 
 Training prints an Arduino function you can paste straight into the robot code:
@@ -89,40 +74,26 @@ int predictFireDirection(int s1, int s2, int s3, int s4, int s5) {
 }
 ```
 
-#### Collecting real data
+There's also `ml/train_fire_model.ipynb` if you'd rather read through the steps.
+
+#### How the data was collected
 
 1. Upload `arduino/01_sensor_logger/01_sensor_logger.ino` to the robot.
 2. Open Serial Monitor at 9600 baud, you'll see the header `s1,s2,s3,s4,s5`.
 3. Record per fire position: no fire to `NO_FIRE`, fire front-left (A5/A4) to `FIRE_LEFT`, front-center (A3) to `FIRE_CENTER`, front-right (A2/A1) to `FIRE_RIGHT`.
-4. Add a `label` column and save as `data/fire_dataset_real.csv`:
-
-```csv
-s1,s2,s3,s4,s5,label
-930,910,900,920,940,NO_FIRE
-320,460,850,890,900,FIRE_LEFT
-750,720,320,730,760,FIRE_CENTER
-900,890,850,460,320,FIRE_RIGHT
-```
-
-5. Retrain with the real data: `python ml/train_fire_model.py data/fire_dataset_real.csv`
-6. Copy the generated `predictFireDirection()` into `arduino/02_fire_robot_ml/02_fire_robot_ml.ino`.
-7. Tune `PROXIMITY_THRESHOLD` from the center sensor (A3/s3) reading when the fire is very close.
-8. Upload and test.
+4. Add a `label` column, then clean and smooth the readings.
+5. Train, copy the generated `predictFireDirection()` into `arduino/02_fire_robot_ml/02_fire_robot_ml.ino`, and tune `PROXIMITY_THRESHOLD` from the center sensor when the fire is very close.
 
 #### Status
 
 Done:
-- Dummy dataset, 4 classes, 5 columns, to validate the pipeline
-- Training notebook with the data science methodology (80:20 split)
-- Decision Tree training script
-- Arduino sensor logger reading all 5 channels
-- Final Arduino code with the servo following the predicted direction plus the deterministic proximity check
+- Robot built and wired (see photo above)
+- Real dataset collected, 260 samples across 4 classes
+- Training notebook and script, Decision Tree exported to Arduino if-else
+- Sensor logger and final robot firmware with the sense-think-act loop
 
-Not done yet:
-- Collecting the real dataset from the physical robot
-- Retraining on real data
-- Calibrating `PROXIMITY_THRESHOLD` from real readings
-- Uploading and testing on the robot
+Ongoing:
+- Field tuning of `PROXIMITY_THRESHOLD` and more test runs
 
 #### License
 
