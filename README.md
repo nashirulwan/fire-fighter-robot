@@ -1,6 +1,6 @@
 ### Fire Fighter Robot ML
 
-A built fire fighting robot that uses a Decision Tree on real flame sensor data to figure out where the fire is and point its nozzle at it. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle just swept back and forth. This version learns the fire direction from the sensors instead.
+A fire fighting robot that uses a Decision Tree on real flame sensor data to figure out where the fire is and point its nozzle at it. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle just swept back and forth. This version learns the fire direction from the sensors instead.
 
 ![robot prototype](docs/robot.png)
 
@@ -95,6 +95,3 @@ Done:
 Ongoing:
 - Field tuning of `PROXIMITY_THRESHOLD` and more test runs
 
-#### License
-
-MIT, see LICENSE.
