@@ -1,6 +1,6 @@
 ### Fire Fighter Robot ML
 
-A fire fighting robot that uses a Decision Tree on real flame sensor data to figure out where the fire is and point its nozzle at it. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle just swept back and forth. This version learns the fire direction from the sensors instead.
+A fire fighting robot that uses a Decision Tree on real flame sensor data to figure out where the fire is and point its nozzle at it. The original robot could already move toward fire, but it decided with manual thresholds and the nozzle just swept back and forth. This version learns the fire direction from the sensors instead. Built as the final project for a robotics course.
 
 ![robot prototype](docs/robot.png)
 
@@ -92,6 +92,4 @@ Done:
 - Training notebook and script, Decision Tree exported to Arduino if-else
 - Sensor logger and final robot firmware with the sense-think-act loop
 
-Ongoing:
-- Field tuning of `PROXIMITY_THRESHOLD` and more test runs
 
